@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>อ่านออกเสียง · Read Aloud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+```
+:root {
+  --bg: #0d0f14;
+  --surface: #161921;
+  --surface2: #1e2230;
+  --border: #2a2f42;
+  --accent: #6ee7b7;
+  --accent2: #38bdf8;
+  --text: #e8eaf0;
+  --muted: #7a8099;
+  --danger: #f87171;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 80px;
+}
+
+/* Background effect */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(110,231,183,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 100%, rgba(56,189,248,0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 760px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 20px;
+}
+
+.card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-label span { font-size: 14px; }
+
+/* Drop zone */
+#dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 36px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--surface2);
+}
+
+#dropzone:hover, #dropzone.drag-over {
+  border-color: var(--accent);
+  background: rgba(110,231,183,0.05);
+}
+
+#dropzone .dz-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+#dropzone .dz-title { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+#dropzone .dz-sub { font-size: 0.85rem; color: var(--muted); }
+#fileInput { display: none; }
+
+#fileName {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: rgba(110,231,183,0.1);
+  border: 1px solid rgba(110,231,183,0.3);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+#fileName .fn-remove {
+  margin-left: auto;
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Textarea */
+#textInput {
+  width: 100%;
+  min-height: 200px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  color: var(--text);
+  font-family: 'Sarabun', sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  resize: vertical;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+#textInput:focus { border-color: var(--accent); }
+#textInput::placeholder { color: var(--muted); }
+
+.char-count {
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* Settings row */
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 500px) { .settings-row { grid-template-columns: 1fr; } }
+
+.setting-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.setting-group select,
+.setting-group input[type=range] {
+  width: 100%;
+}
+
+select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: 'Sarabun', sans-serif;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+select:focus { border-color: var(--accent2); }
+
+input[type=range] {
+  -webkit-appearance: none;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px rgba(110,231,183,0.15);
+}
+
+.range-val {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Buttons */
+.btn-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-family: 'Sarabun', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #0d0f14;
+}
+
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(110,231,183,0.2); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* Progress */
+#progressBar {
+  display: none;
+  margin-top: 20px;
+}
+
+.progress-track {
+  background: var(--surface2);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Status */
+#status {
+  text-align: center;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  margin-top: 16px;
+  display: none;
+}
+
+#status.info { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: var(--accent2); }
+#status.success { background: rgba(110,231,183,0.1); border: 1px solid rgba(110,231,183,0.3); color: var(--accent); }
+#status.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--danger); }
+
+/* Wave animation during speaking */
+.wave { display: none; align-items: center; justify-content: center; gap: 4px; margin-top: 16px; }
+.wave.active { display: flex; }
+.wave-bar {
+  width: 4px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: wave 1s ease-in-out infinite;
+}
+.wave-bar:nth-child(2) { animation-delay: 0.1s; background: var(--accent2); }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { animation-delay: 0.3s; background: var(--accent2); }
+.wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 8px 0;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+```
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔊</div>
+    </div>
+    <h1>Read Aloud</h1>
+    <p class="subtitle">แนบไฟล์หรือพิมพ์ข้อความ แล้วฟังเสียงอ่านได้เลย</p>
+  </header>
+
+  <!-- File Upload -->
+
+  <div class="card">
+    <div class="card-label"><span>📎</span> แนบไฟล์</div>
+    <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <span class="dz-icon">📄</span>
+      <div class="dz-title">วางไฟล์ที่นี่ หรือคลิกเพื่อเลือก</div>
+      <div class="dz-sub">รองรับ .txt, .md, .html (ข้อความธรรมดา)</div>
+    </div>
+    <div id="fileName">
+      <span>📄</span>
+      <span id="fileNameText"></span>
+      <span class="fn-remove" onclick="removeFile()">×</span>
+    </div>
+    <input type="file" id="fileInput" accept=".txt,.md,.html,.csv,.json,.rtf">
+  </div>
+
+  <div class="divider">หรือ</div>
+
+  <!-- Text Input -->
+
+  <div class="card">
+    <div class="card-label"><span>✏️</span> พิมพ์ / วางข้อความ</div>
+    <textarea id="textInput" placeholder="พิมพ์หรือวางข้อความที่ต้องการฟังที่นี่..."></textarea>
+    <div class="char-count"><span id="charCount">0</span> ตัวอักษร</div>
+  </div>
+
+  <!-- Settings -->
+
+  <div class="card">
+    <div class="card-label"><span>⚙️</span> ตั้งค่าเสียง</div>
+    <div class="settings-row">
+      <div class="setting-group">
+        <label>เสียง (Voice)</label>
+        <select id="voiceSelect"><option>กำลังโหลด...</option></select>
+      </div>
+      <div class="setting-group">
+        <label>ความเร็ว · <span id="rateVal">1.0</span>x</label>
+        <input type="range" id="rateRange" min="0.5" max="2" step="0.1" value="1">
+      </div>
+      <div class="setting-group">
+        <label>ระดับเสียง · <span id="pitchVal">1.0</span></label>
+        <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1">
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+
+  <div id="progressBar">
+    <div class="progress-label">
+      <span>กำลังอ่าน...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <!-- Wave -->
+
+  <div class="wave" id="wave">
+    <div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+
+  <!-- Status -->
+
+  <div id="status"></div>
+
+  <!-- Buttons -->
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="btnPlay" onclick="startReading()">▶ เริ่มอ่าน</button>
+    <button class="btn btn-secondary" id="btnPause" onclick="togglePause()" disabled>⏸ หยุดชั่วคราว</button>
+    <button class="btn btn-secondary" id="btnStop" onclick="stopReading()" disabled>⏹ หยุด</button>
+  </div>
+</div>
+
+<script>
+  const synth = window.speechSynthesis;
+  let utterance = null;
+  let isPaused = false;
+  let voices = [];
+  let chunks = [];
+  let currentChunk = 0;
+
+  // Load voices
+  function loadVoices() {
+    voices = synth.getVoices();
+    const sel = document.getElementById('voiceSelect');
+    sel.innerHTML = '';
+    if (voices.length === 0) {
+      sel.innerHTML = '<option>ไม่พบเสียง</option>';
+      return;
+    }
+    voices.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${v.name} (${v.lang})`;
+      if (v.lang.startsWith('th')) opt.textContent = '🇹🇭 ' + opt.textContent;
+      else if (v.lang.startsWith('en')) opt.textContent = '🇬🇧 ' + opt.textContent;
+      sel.appendChild(opt);
+    });
+    // Try to select Thai voice by default
+    const thIdx = voices.findIndex(v => v.lang.startsWith('th'));
+    if (thIdx >= 0) sel.value = thIdx;
+  }
+
+  synth.addEventListener ? synth.addEventListener('voiceschanged', loadVoices) : null;
+  if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+  setTimeout(loadVoices, 1000);
+
+  // Range inputs
+  document.getElementById('rateRange').addEventListener('input', e => {
+    document.getElementById('rateVal').textContent = parseFloat(e.target.value).toFixed(1);
+  });
+  document.getElementById('pitchRange').addEventListener('input', e => {
+    document.getElementById('pitchVal').textContent = parseFloat(e.target.value).toFixed(1);
+  });
+
+  // Char count
+  document.getElementById('textInput').addEventListener('input', e => {
+    document.getElementById('charCount').textContent = e.target.value.length.toLocaleString();
+  });
+
+  // File upload
+  const dropzone = document.getElementById('dropzone');
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      let text = e.target.result;
+      // Strip HTML tags if needed
+      if (file.name.endsWith('.html')) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = text;
+        text = tmp.innerText;
+      }
+      document.getElementById('textInput').value = text;
+      document.getElementById('charCount').textContent = text.length.toLocaleString();
+      document.getElementById('fileName').style.display = 'flex';
+      document.getElementById('fileNameText').textContent = file.name;
+      showStatus(`โหลดไฟล์ "${file.name}" สำเร็จ · ${text.length.toLocaleString()} ตัวอักษร`, 'success');
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function removeFile() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileName').style.display = 'none';
+    document.getElementById('textInput').value = '';
+    document.getElementById('charCount').textContent = '0';
+  }
+
+  // Reading
+  function getText() {
+    return document.getElementById('textInput').value.trim();
+  }
+
+  // Split text into chunks (TTS has ~32KB limit per utterance in some browsers)
+  function splitText(text, size = 200) {
+    const sentences = text.match(/[^.!?。！？\n]+[.!?。！？\n]?/g) || [text];
+    const result = [];
+    let buf = '';
+    sentences.forEach(s => {
+      if ((buf + s).length > size) {
+        if (buf) result.push(buf.trim());
+        buf = s;
+      } else {
+        buf += s;
+      }
+    });
+    if (buf.trim()) result.push(buf.trim());
+    return result;
+  }
+
+  function startReading() {
+    const text = getText();
+    if (!text) { showStatus('กรุณาพิมพ์หรือแนบไฟล์ก่อนเริ่มอ่าน', 'error'); return; }
+
+    synth.cancel();
+    chunks = splitText(text);
+    currentChunk = 0;
+    speakChunk();
+  }
+
+  function speakChunk() {
+    if (currentChunk >= chunks.length) {
+      onDone();
+      return;
+    }
+
+    const voiceIdx = parseInt(document.getElementById('voiceSelect').value);
+    const rate = parseFloat(document.getElementById('rateRange').value);
+    const pitch = parseFloat(document.getElementById('pitchRange').value);
+
+    utterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
+    if (voices[voiceIdx]) utterance.voice = voices[voiceIdx];
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+
+    utterance.onstart = () => {
+      setControls(true);
+      showStatus(`กำลังอ่านส่วนที่ ${currentChunk + 1} / ${chunks.length}`, 'info');
+      updateProgress();
+      document.getElementById('wave').classList.add('active');
+      document.getElementById('progressBar').style.display = 'block';
+    };
+
+    utterance.onend = () => {
+      currentChunk++;
+      speakChunk();
+    };
+
+    utterance.onerror = e => {
+      if (e.error !== 'canceled') showStatus('เกิดข้อผิดพลาด: ' + e.error, 'error');
+    };
+
+    synth.speak(utterance);
+  }
+
+  function updateProgress() {
+    const pct = chunks.length > 0 ? Math.round((currentChunk / chunks.length) * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+  }
+
+  function onDone() {
+    setControls(false);
+    document.getElementById('wave').classList.remove('active');
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressPct').textContent = '100%';
+    showStatus('✅ อ่านจบแล้ว!', 'success');
+    setTimeout(() => { document.getElementById('progressBar').style.display = 'none'; }, 3000);
+  }
+
+  function togglePause() {
+    if (!synth.speaking) return;
+    if (isPaused) {
+      synth.resume();
+      isPaused = false;
+      document.getElementById('btnPause').textContent = '⏸ หยุดชั่วคราว';
+      document.getElementById('wave').classList.add('active');
+      showStatus('กำลังอ่าน...', 'info');
+    } else {
+      synth.pause();
+      isPaused = true;
+      document.getElementById('btnPause').textContent = '▶ อ่านต่อ';
+      document.getElementById('wave').classList.remove('active');
+      showStatus('⏸ หยุดชั่วคราว', 'info');
+    }
+  }
+
+  function stopReading() {
+    synth.cancel();
+    isPaused = false;
+    setControls(false);
+    document.getElementById('wave').classList.remove('active');
+    document.getElementById('progressBar').style.display = 'none';
+    showStatus('หยุดอ่านแล้ว', 'info');
+  }
+
+  function setControls(speaking) {
+    document.getElementById('btnPlay').disabled = speaking;
+    document.getElementById('btnPause').disabled = !speaking;
+    document.getElementById('btnStop').disabled = !speaking;
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'block';
+  }
+
+  // Check support
+  if (!window.speechSynthesis) {
+    showStatus('บราวเซอร์ของคุณไม่รองรับ Speech Synthesis API กรุณาใช้ Microsoft Edge หรือ Chrome', 'error');
+    document.getElementById('status').style.display = 'block';
+  }
+</script>
+
+</body>
+</html>
